@@ -3,14 +3,13 @@ import pycxsimulator
 
 import copy as cp
 
-cd = 0.02 # radius for collision detection
-cdsq = cd ** 2
 
 N = 1000 # Number of agents
 I0 = 1 # Initial number of infected agents
 m = 0.05 # magnitude of movement of agents
 pd = 0.02 # probability of death in infected agent
 pt = 0.18 # Probability of transmitting covid to a susceptible agent
+it = 14 # max time agent can be of type 'I'
 cd = 0.02 # radius for collision detection
 cdsq = cd ** 2
 
@@ -19,7 +18,9 @@ class agent:
     pass
 
 def initialize():
-    global agents
+    global population,time, agents, infectedData, deathData
+    population = N
+    time = 0
     agents = []
     for i in range(N):
         ag = agent()
@@ -30,26 +31,36 @@ def initialize():
         ag.y = random()
         agents.append(ag)
 
+    infectedData = [I0]
+    deathData = [N - len(agents)]
+
 def observe():
-    global agents
+    subplot(1, 2, 1)    
     cla()
     susceptible = [ag for ag in agents if ag.type == 'S']
     if len(susceptible) > 0:
         x = [ag.x for ag in susceptible]
         y = [ag.y for ag in susceptible]
-        plot(x, y, 'b.')
+        scatter(x, y, color = 'blue')
     infected = [ag for ag in agents if ag.type == 'I']
     if len(infected) > 0:
         x = [ag.x for ag in infected]
         y = [ag.y for ag in infected]
-        plot(x, y, 'ro')
+        scatter(x, y, color='red')
     recovered = [ag for ag in agents if ag.type == 'R']
     if len(recovered) > 0:
         x = [ag.x for ag in recovered]
         y = [ag.y for ag in recovered]
-        plot(x, y, 'g.')
-    axis('image')
+        scatter(x, y, color='green')
+    axis('scaled')
     axis([0, 1, 0, 1])
+    title('t = ' + str(time))
+
+    subplot(1, 2, 2)
+    cla()
+    plot(infectedData, color = 'red')
+    plot(deathData, color = 'black')
+    title('Number of Infected agents and Deaths')
 
 def update_one_agent():
     global agents
@@ -83,15 +94,21 @@ def update_one_agent():
         if random() < pd:
             agents.remove(ag)
             return
-        if ag.t > 10: # if agent has been infected for more than 10 days and has not died they are considered recovered
+        if ag.t > it: # if agent has been infected for more than 14 days and has not died they are considered recovered
             ag.type = 'R'
             ag.t = 0
 
 def update():
-    global agents
+    global population, agents, time, susceptibleData, infectedData, recoveredData
+    population = len(agents)
     t = 0.
     while t < 1. and len(agents) > 0:
         t += 1. / len(agents)
         update_one_agent()
+    time += 1
+    infected = [ag for ag in agents if ag.type == 'I']
+
+    infectedData.append(len(infected))
+    deathData.append(population - len(agents))
 
 pycxsimulator.GUI().start(func=[initialize, observe, update])
