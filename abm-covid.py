@@ -1,12 +1,15 @@
 from pylab import *
 import pycxsimulator
+import sys
 
-import copy as cp
-
+# allow for custom magnitude variables on command line
+if len(sys.argv) > 1:
+    m = float(sys.argv[1])
+else:
+    m = 0.05
 
 N = 1000 # Number of agents
 I0 = 1 # Initial number of infected agents
-m = 0.05 # magnitude of movement of agents
 pd = 0.02 # probability of death in infected agent
 pt = 0.18 # Probability of transmitting covid to a susceptible agent
 it = 14 # max time agent can be of type 'I'
@@ -18,7 +21,7 @@ class agent:
     pass
 
 def initialize():
-    global population,time, agents, infectedData, deathData
+    global population,time, agents, susceptibleData, infectedData, recoveredData, deathData
     population = N
     time = 0
     agents = []
@@ -31,7 +34,9 @@ def initialize():
         ag.y = random()
         agents.append(ag)
 
+    susceptibleData = [N - I0]
     infectedData = [I0]
+    recoveredData = [N - (N - I0) - I0]
     deathData = [N - len(agents)]
 
 def observe():
@@ -56,11 +61,18 @@ def observe():
     axis([0, 1, 0, 1])
     title('t = ' + str(time))
 
-    subplot(1, 2, 2)
+    subplot(2, 2, 2)
     cla()
+    plot(susceptibleData, color='blue')
     plot(infectedData, color = 'red')
+    plot(recoveredData, color = 'green')
+    ##plot(deathData, color = 'black')
+    title('Number of Agents of Each Type over Time')
+
+    subplot(2, 2, 4)
+    cla()
     plot(deathData, color = 'black')
-    title('Number of Infected agents and Deaths')
+    title('Cumulative No. Deaths')
 
 def update_one_agent():
     global agents
@@ -69,7 +81,6 @@ def update_one_agent():
 
     ag = choice(agents)
 
-    ag.t += 1 #update agents time in current type state
 
     # simulating random movement
     m = ag.m ###
@@ -101,14 +112,21 @@ def update_one_agent():
 def update():
     global population, agents, time, susceptibleData, infectedData, recoveredData
     population = len(agents)
+    for ag in agents:
+        ag.t += 1 #update agents time in current type state
     t = 0.
     while t < 1. and len(agents) > 0:
         t += 1. / len(agents)
         update_one_agent()
     time += 1
-    infected = [ag for ag in agents if ag.type == 'I']
 
+    susceptible = [ag for ag in agents if ag.type == 'S']
+    infected = [ag for ag in agents if ag.type == 'I']
+    recovered = [ag for ag in agents if ag.type == 'R']
+    
+    susceptibleData.append(len(susceptible))
     infectedData.append(len(infected))
-    deathData.append(population - len(agents))
+    recoveredData.append(len(recovered))
+    deathData.append(N - len(agents))
 
 pycxsimulator.GUI().start(func=[initialize, observe, update])
